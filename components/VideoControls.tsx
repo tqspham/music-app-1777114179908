@@ -76,7 +76,8 @@ export default function VideoControls({
             className="rounded p-2 transition-colors hover:bg-white/20 focus:outline-2 focus:outline-blue-500"
             aria-label={isFullscreen ? "Exit fullscreen" : "Enter fullscreen"}
           >
-            {isFullscreen ? ("Minimize size={20} className="text-white" />
+            {isFullscreen ? (
+              <Minimize size={20} className="text-white" />
             ) : (
               <Maximize size={20} className="text-white" />
             )}
