@@ -224,7 +224,7 @@ export default function Page(): React.ReactElement {
   const currentVideo = videos.find((v) => v.id === selectedVideoId) || null;
 
   return (
-    <div className="flex h-screen flex-col bg-gradient-to-b from-slate-900 to-slate-950 text-white">
+    <div className="flex h-screen flex-col bg-gradient-to-b from-slate-900 to-slate-950 text-white pt-20">
       <ErrorBoundary
         error={error}
         onDismiss={() => setError(null)}
