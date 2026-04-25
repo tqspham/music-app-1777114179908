@@ -180,7 +180,7 @@ export default function VideoPlayer({
           setIsMuted(!isMuted);
           break;
         case "arrowright":
-          e.preventDefault():
+          e.preventDefault();
           video.currentTime = Math.min(video.currentTime + 5, video.duration);
           break;
         case "arrowleft":
