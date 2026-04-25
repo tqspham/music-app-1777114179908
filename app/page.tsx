@@ -9,6 +9,7 @@ import VolumeSlider from "@/components/VolumeSlider";
 import LoadingState from "@/components/LoadingState";
 import EmptyState from "@/components/EmptyState";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import VideoPlayer from "@/components/VideoPlayer";
 
 interface Song {
   id: string;
@@ -16,6 +17,19 @@ interface Song {
   artist: string;
   duration: number;
   albumArt?: string;
+}
+
+interface Video {
+  id: string;
+  title: string;
+  description: string;
+  sources: Array<{
+    url: string;
+    type: "video/mp4" | "video/webm" | "application/x-mpegURL";
+  }>;
+  posterImage: string;
+  autoplay: boolean;
+  muted: boolean;
 }
 
 interface PlayerState {
@@ -29,8 +43,11 @@ type AudioReference = HTMLAudioElement | null;
 
 export default function Page(): React.ReactElement {
   const [songs, setSongs] = useState<Song[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [videos, setVideos] = useState<Video[]>([]);
+  const [isLoadingSongs, setIsLoadingSongs] = useState<boolean>(true);
+  const [isLoadingVideos, setIsLoadingVideos] = useState<boolean>(true);
   const [isEmpty, setIsEmpty] = useState<boolean>(false);
+  const [selectedVideoId, setSelectedVideoId] = useState<string | null>(null);
   const [playerState, setPlayerState] = useState<PlayerState>({
     currentSongId: null,
     isPlaying: false,
@@ -45,7 +62,7 @@ export default function Page(): React.ReactElement {
   useEffect(() => {
     const fetchSongs = async (): Promise<void> => {
       try {
-        setIsLoading(true);
+        setIsLoadingSongs(true);
         setError(null);
         const response = await fetch("/api/songs");
         if (!response.ok) {
@@ -58,11 +75,36 @@ export default function Page(): React.ReactElement {
         const errorMessage = err instanceof Error ? err.message : "Unknown error";
         setError(errorMessage);
       } finally {
-        setIsLoading(false);
+        setIsLoadingSongs(false);
       }
     };
 
     void fetchSongs();
+  }, []);
+
+  // Fetch videos on mount
+  useEffect(() => {
+    const fetchVideos = async (): Promise<void> => {
+      try {
+        setIsLoadingVideos(true);
+        const response = await fetch("/api/videos");
+        if (!response.ok) {
+          throw new Error("Failed to fetch videos");
+        }
+        const data = await response.json() as { videos: Video[] };
+        setVideos(data.videos);
+        if (data.videos.length > 0) {
+          setSelectedVideoId(data.videos[0].id);
+        }
+      } catch (err: unknown) {
+        const errorMessage = err instanceof Error ? err.message : "Unknown error";
+        setError(errorMessage);
+      } finally {
+        setIsLoadingVideos(false);
+      }
+    };
+
+    void fetchVideos();
   }, []);
 
   // Initialize audio element and handle playback
@@ -179,6 +221,7 @@ export default function Page(): React.ReactElement {
   };
 
   const currentSong = songs.find((s) => s.id === playerState.currentSongId) || null;
+  const currentVideo = videos.find((v) => v.id === selectedVideoId) || null;
 
   return (
     <div className="flex h-screen flex-col bg-gradient-to-b from-slate-900 to-slate-950 text-white">
@@ -189,10 +232,26 @@ export default function Page(): React.ReactElement {
 
       <div className="flex flex-1 overflow-hidden">
         {/* Main player section */}
-        <div className="flex flex-1 flex-col p-8">
+        <div className="flex flex-1 flex-col overflow-y-auto p-8">
           <div className="mb-8">
-            <h1 className="text-4xl font-bold">Music Player</h1>
+            <h1 className="text-4xl font-bold">Media Player</h1>
           </div>
+
+          {/* Video Player Section */}
+          {!isLoadingVideos && currentVideo && (
+            <div className="mb-12 flex-shrink-0">
+              <VideoPlayer
+                videoId={currentVideo.id}
+                title={currentVideo.title}
+                description={currentVideo.description}
+                sources={currentVideo.sources}
+                posterImage={currentVideo.posterImage}
+                autoplay={currentVideo.autoplay}
+                muted={currentVideo.muted}
+                onError={(message) => setError(message)}
+              />
+            </div>
+          )}
 
           {/* Now Playing */}
           <div className="mb-12 flex-shrink-0">
@@ -234,7 +293,7 @@ export default function Page(): React.ReactElement {
 
         {/* Song List */}
         <div className="w-80 border-l border-slate-700 bg-slate-800">
-          {isLoading ? (
+          {isLoadingSongs ? (
             <LoadingState />
           ) : isEmpty ? (
             <EmptyState />
@@ -243,7 +302,7 @@ export default function Page(): React.ReactElement {
               songs={songs}
               selectedId={playerState.currentSongId || ""}
               onSelect={handleSelectSong}
-              isLoading={isLoading}
+              isLoading={isLoadingSongs}
               isEmpty={isEmpty}
             />
           )}
